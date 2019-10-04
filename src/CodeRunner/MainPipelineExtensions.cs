@@ -1,4 +1,5 @@
 ﻿using CodeRunner.Commands;
+using CodeRunner.Diagnostics;
 using CodeRunner.Extensions;
 using CodeRunner.Extensions.Helpers;
 using CodeRunner.Extensions.Helpers.Rendering;
@@ -33,28 +34,29 @@ namespace CodeRunner
                 scope.Add<TextReader>(input);
             });
 
-        public static Builder ConfigureWorkspace(this Builder builder, IWorkspace workspace) => builder.Configure(nameof(ConfigureWorkspace),
-            scope => scope.Add<IWorkspace>(workspace));
-
         public static Builder ConfigureLogger(this Builder builder, ILogger logger) => builder.Configure(nameof(ConfigureLogger),
             scope => scope.Add<ILogger>(logger));
 
         public static Builder ConfigureHost(this Builder builder, IHost host) => builder.Configure(nameof(ConfigureHost),
             scope => scope.Add<IHost>(host));
 
-        public static Builder ConfigureExtensions(this Builder builder, ExtensionCollection exts) => builder.Configure(nameof(ConfigureHost),
-            scope => scope.Add<ExtensionCollection>(exts));
+        #region Extensions
 
-        public static Builder UseReplCommandService(this Builder builder) => builder.Use(nameof(UseReplCommandService),
-            context =>
+        public static Builder UseExtensionsLoading(this Builder builder) => builder.UseExtensionsService().UseCommandsService().UseWorkspacesService();
+
+        public static Builder UseExtensionsService(this Builder builder) => builder.Use(nameof(UseExtensionsService),
+            async context =>
             {
-                Command command = new ReplCommand().Build();
-                foreach (Command cmd in context.Services.GetCommands())
-                {
-                    command.AddCommand(cmd);
-                }
-                context.Services.Add<Command>(command, ServicesExtensions.ReplCommandId);
-                return Task.FromResult(context.IgnoreResult());
+                ExtensionCollection res = new ExtensionCollection();
+                Manager manager = context.Services.GetManager();
+
+                res.Load(new ExtensionLoader(typeof(Extensions.Builtin.Console.ConsoleExtension).Assembly));
+                res.Load(new ExtensionLoader(typeof(Extensions.Builtin.Workspace.WorkspaceExtension).Assembly));
+
+                await res.LoadFromManager(manager, context.Logs);
+
+                context.Services.Add<ExtensionCollection>(res);
+                return context.IgnoreResult();
             });
 
         public static Builder UseCommandsService(this Builder builder) => builder.Use(nameof(UseCommandsService),
@@ -83,6 +85,20 @@ namespace CodeRunner
                 return Task.FromResult(context.IgnoreResult());
             });
 
+        #endregion
+
+        public static Builder UseReplCommandService(this Builder builder) => builder.Use(nameof(UseReplCommandService),
+            context =>
+            {
+                Command command = new ReplCommand().Build();
+                foreach (Command cmd in context.Services.GetCommands())
+                {
+                    command.AddCommand(cmd);
+                }
+                context.Services.Add<Command>(command, ServicesExtensions.ReplCommandId);
+                return Task.FromResult(context.IgnoreResult());
+            });
+
         public static Builder UseTestView(this Builder builder) => builder.Use(nameof(UseTestView),
             context =>
             {
@@ -97,11 +113,34 @@ namespace CodeRunner
                 Parser cliCommand = CommandLines.CreateDefaultParser(context.Services.GetCliCommand(), context);
                 IConsole console = context.Services.GetConsole();
                 int exitCode = await cliCommand.InvokeAsync(context.Origin, console);
-                if (!context.Services.TryGet<IWorkspace>(out _)) // No workspace, cliCommand interrupt
+                if (!context.Services.TryGet<string>(out _, ServicesExtensions.ArgWorkspaceNameId)) // No workspace id, cliCommand interrupt by --help or --version
                 {
                     context.IsStopped = true;
                 }
                 return exitCode;
+            });
+
+        public static Builder UseInitialWorkspace(this Builder builder) => builder.Use(nameof(UseInitialWorkspace),
+            async context =>
+            {
+                WorkspaceCollection workspaces = context.Services.GetWorkspaces();
+                string workspaceName = context.Services.Get<string>(ServicesExtensions.ArgWorkspaceNameId);
+                Extensions.Managements.IWorkspaceProvider? defaultWs = workspaces.GetWorkspaceProviderByName(workspaceName);
+                Assert.IsNotNull(defaultWs);
+
+                ITerminal terminal = context.Services.GetConsole().GetTerminal();
+                Templates.BaseTemplate<IWorkspace> provider = defaultWs.Provider;
+                Templates.ResolveContext resolveContext = new Templates.ResolveContext();
+                if (terminal.FillVariables(context.Services.GetInput(), provider.GetVariables(), resolveContext))
+                {
+                    context.Services.Add<IWorkspace>(await provider.Resolve(resolveContext));
+                    return context.IgnoreResult();
+                }
+                else
+                {
+                    context.Logs.Error("Can't create workspace with not enough arguments.");
+                    return -1;
+                }
             });
 
         private static bool Prompt(PipelineContext context, ITerminal terminal)
@@ -124,16 +163,12 @@ namespace CodeRunner
                 TextReader input = context.Services.GetInput();
                 CommandCollection commands = context.Services.GetCommands();
 
-                terminal.OutputLine(Environment.CurrentDirectory);
-
-                while (Prompt(context, terminal) && !input.IsEndOfInput())
+                async Task<(bool, int)> doALine(string? line)
                 {
-                    string? line = input.InputLine();
                     if (line != null)
                     {
                         ParseResult result = replParser.Parse(line);
                         int exitCode;
-
                         ICommand currentCommand = result.CommandResult.Command;
                         if (currentCommand == replCommand)
                         {
@@ -157,14 +192,38 @@ namespace CodeRunner
                         }
 
                         ExtensionHost host = (ExtensionHost)context.Services.GetHost();
-                        if (host.RequestShutdown)
+                        if (host.RequestShutdown || host.RequestRestart)
                         {
-                            break;
+                            return (true, exitCode);
                         }
                         if (exitCode != 0)
                         {
                             terminal.OutputErrorLine($"Executed with code {exitCode}.");
                         }
+                        return (false, exitCode);
+                    }
+                    else
+                    {
+                        return (false, 0);
+                    }
+                }
+
+                {
+                    string cmd = context.Services.Get<string>(ServicesExtensions.ArgCommandId);
+                    if (!string.IsNullOrEmpty(cmd))
+                    {
+                        return (await doALine(cmd)).Item2;
+                    }
+                }
+
+                terminal.OutputLine(Environment.CurrentDirectory);
+
+                while (Prompt(context, terminal) && !input.IsEndOfInput())
+                {
+                    string? line = input.InputLine();
+                    if ((await doALine(line)).Item1)
+                    {
+                        break;
                     }
                 }
 

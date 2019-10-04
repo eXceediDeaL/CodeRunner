@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 
 namespace CodeRunner.Commands
 {
-    public class ExtensionCommand : BaseCommand<ExtensionCommand.CArgument>
+    public class CommandCommand : BaseCommand<CommandCommand.CArgument>
     {
         public override Command Configure()
         {
-            Command res = new Command("extension", "Manage extensions.");
-            res.AddAlias("ext");
-            res.AddCommand(new Extensions.ListCommand().Build());
+            Command res = new Command("command", "Manage commands.");
+            res.AddAlias("cmd");
+            res.AddCommand(new Commands.ListCommand().Build());
             return res;
         }
 

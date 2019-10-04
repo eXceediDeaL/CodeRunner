@@ -9,7 +9,6 @@ A CLI tool to run code. Inspired by [edl-cr](https://github.com/eXceediDeaL/edl-
 |Repository|[![issue](https://img.shields.io/github/issues/CodeRunner-SD/CodeRunner.svg)](https://github.com/CodeRunner-SD/CodeRunner/issues/) [![pull requests](https://img.shields.io/github/issues-pr/CodeRunner-SD/CodeRunner.svg)](https://github.com/CodeRunner-SD/CodeRunner/pulls/)|
 |Dependencies|[![dependencies](https://img.shields.io/librariesio/github/CodeRunner-SD/CodeRunner.svg)](https://libraries.io/github/CodeRunner-SD/CodeRunner)|
 |Build|![github](https://github.com/CodeRunner-SD/CodeRunner/workflows/CI-CD/badge.svg)|
-|Coverage|[![master](https://img.shields.io/codecov/c/github/CodeRunner-SD/CodeRunner/master.svg?label=master)](https://codecov.io/gh/CodeRunner-SD/CodeRunner) [![dev](https://img.shields.io/codecov/c/github/CodeRunner-SD/CodeRunner/dev.svg?label=dev)](https://codecov.io/gh/CodeRunner-SD/CodeRunner)|
 |Package|[![myget](https://img.shields.io/myget/stardustdl/v/CodeRunner?label=myget)](https://www.myget.org/feed/stardustdl/package/nuget/CodeRunner) [![myget](https://img.shields.io/myget/stardustdl/dt/CodeRunner)](https://www.myget.org/feed/stardustdl/package/nuget/CodeRunner)|
 
 ## Install

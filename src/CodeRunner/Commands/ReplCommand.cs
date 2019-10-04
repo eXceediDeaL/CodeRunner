@@ -12,7 +12,10 @@ namespace CodeRunner.Commands
         public override Command Configure()
         {
             RootCommand res = new RootCommand(Program.AppDescription);
+            res.AddCommand(new ConfigCommand().Build());
             res.AddCommand(new ExtensionCommand().Build());
+            res.AddCommand(new CommandCommand().Build());
+            res.AddCommand(new WorkspaceCommand().Build());
             return res;
         }
 

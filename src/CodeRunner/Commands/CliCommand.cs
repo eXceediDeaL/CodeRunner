@@ -1,6 +1,5 @@
 ﻿using CodeRunner.Extensions.Commands;
 using CodeRunner.Extensions.Helpers;
-using CodeRunner.Helpers;
 using CodeRunner.Loggings;
 using CodeRunner.Managements;
 using CodeRunner.Pipelines;
@@ -8,7 +7,6 @@ using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -58,24 +56,19 @@ namespace CodeRunner.Commands
             return res;
         }
 
-        protected override async Task<int> Handle(CArgument argument, IConsole console, InvocationContext context, PipelineContext pipeline, CancellationToken cancellationToken)
+        protected override Task<int> Handle(CArgument argument, IConsole console, InvocationContext context, PipelineContext pipeline, CancellationToken cancellationToken)
         {
             Environment.CurrentDirectory = argument.Directory!.FullName;
 
             {
-                var workspaces = pipeline.Services.GetWorkspaces();
-                var builtinFs = workspaces.GetProviders().First();
-                pipeline.Services.Add<IWorkspace>(await builtinFs.Provider.Resolve(new Templates.ResolveContext()));
+                Manager manager = new Manager(new DirectoryInfo(Environment.CurrentDirectory));
+                pipeline.Services.Add<Manager>(manager);
             }
+
+            pipeline.Services.Add<string>("fs", ServicesExtensions.ArgWorkspaceNameId);
+            pipeline.Services.Add<string>(argument.Command, ServicesExtensions.ArgCommandId);
 
             ILogger logger = pipeline.Services.GetLogger();
-
-            if (argument.Command != "")
-            {
-                Parser repl = CommandLines.CreateDefaultParser(pipeline.Services.GetReplCommand(), pipeline);
-                pipeline.IsStopped = true;
-                return await repl.InvokeAsync(argument.Command, console);
-            }
 
             if (argument.Verbose)
             {
@@ -85,7 +78,7 @@ namespace CodeRunner.Commands
                 _ = logger.UseLevelFilter(LogLevel.Information);
             }
 
-            return 0;
+            return Task.FromResult(0);
         }
 
         public class CArgument

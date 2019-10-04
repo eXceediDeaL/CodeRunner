@@ -1,6 +1,5 @@
 ﻿using CodeRunner.Helpers;
 using CodeRunner.Loggings;
-using CodeRunner.Managements.Extensions;
 using CodeRunner.Pipelines;
 using System;
 using System.CommandLine;
@@ -30,58 +29,61 @@ namespace CodeRunner
         {
             Console.InputEncoding = Encoding.UTF8;
             Console.OutputEncoding = Encoding.UTF8;
+            string oldCurDir = System.Environment.CurrentDirectory;
 
-            ILogger logger = new Logger();
-            ExtensionCollection extensions = new ExtensionCollection();
+            while (true)
             {
-                extensions.Load(new ExtensionLoader(typeof(Extensions.Builtin.Console.ConsoleExtension).Assembly));
-                extensions.Load(new ExtensionLoader(typeof(Extensions.Builtin.Workspace.WorkspaceExtension).Assembly));
-            }
+                System.Environment.CurrentDirectory = oldCurDir;
 
-            PipelineBuilder<string[], Wrapper<int>> builder = new PipelineBuilder<string[], Wrapper<int>>();
+                ILogger logger = new Logger();
 
-            _ = builder.ConfigureLogger(logger)
-                .ConfigureExtensions(extensions)
-                .ConfigureHost(new ExtensionHost())
-                .ConfigureCliCommand();
+                ExtensionHost host = new ExtensionHost();
 
-            if (Environment == EnvironmentType.Test)
-            {
-                if (TestView.Input == null)
+                PipelineBuilder<string[], Wrapper<int>> builder = new PipelineBuilder<string[], Wrapper<int>>();
+
+                _ = builder.ConfigureLogger(logger)
+                    .ConfigureHost(host)
+                    .ConfigureCliCommand();
+
+                if (Environment == EnvironmentType.Test)
                 {
-                    throw new NullReferenceException(nameof(TestView.Input));
+                    if (TestView.Input == null)
+                    {
+                        throw new NullReferenceException(nameof(TestView.Input));
+                    }
+
+                    _ = builder.ConfigureConsole(new TestTerminal(), TestView.Input);
+                }
+                else
+                {
+                    _ = builder.ConfigureConsole(new SystemConsole(), Console.In);
                 }
 
-                _ = builder.ConfigureConsole(new TestTerminal(), TestView.Input);
-            }
-            else
-            {
-                _ = builder.ConfigureConsole(new SystemConsole(), Console.In);
-            }
+                _ = builder.UseCliCommand()
+                    .UseExtensionsLoading()
+                    .UseReplCommandService()
+                    .UseInitialWorkspace();
 
-            _ = builder.UseWorkspacesService()
-                       .UseCommandsService()
-                       .UseReplCommandService();
+                if (Environment == EnvironmentType.Test)
+                {
+                    _ = builder.UseTestView();
+                }
 
-            _ = builder.UseCliCommand();
+                _ = builder.UseReplCommand();
 
-            if (Environment == EnvironmentType.Test)
-            {
-                _ = builder.UseTestView();
-            }
+                Pipeline<string[], Wrapper<int>> pipeline = await builder.Build(args, logger);
+                PipelineResult<Wrapper<int>> result = await pipeline.Consume();
+                if (result.IsError)
+                {
+                    Console.Error.WriteLine(result.Exception!.ToString());
+                }
 
-            _ = builder.UseReplCommand();
+                if (host.RequestRestart)
+                {
+                    continue;
+                }
 
-            Pipeline<string[], Wrapper<int>> pipeline = await builder.Build(args, logger);
-            PipelineResult<Wrapper<int>> result = await pipeline.Consume();
-            if (result.IsOk)
-            {
-                return result.Result!;
-            }
-            else
-            {
-                Console.Error.WriteLine(result.Exception!.ToString());
-                return -1;
+                return result.IsOk ? (int)result.Result! : -1;
             }
         }
     }

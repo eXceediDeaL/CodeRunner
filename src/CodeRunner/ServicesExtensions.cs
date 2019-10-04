@@ -1,4 +1,5 @@
-﻿using CodeRunner.Managements.Extensions;
+﻿using CodeRunner.Managements;
+using CodeRunner.Managements.Extensions;
 using CodeRunner.Pipelines;
 using System.CommandLine;
 
@@ -10,11 +11,17 @@ namespace CodeRunner
 
         internal const string CliCommandId = "cli";
 
+        internal const string ArgWorkspaceNameId = "arg-wsname";
+
+        internal const string ArgCommandId = "arg-cmd";
+
         public static ExtensionCollection GetExtensions(this ServiceScope scope) => scope.Get<ExtensionCollection>();
 
         public static CommandCollection GetCommands(this ServiceScope scope) => scope.Get<CommandCollection>();
 
         public static WorkspaceCollection GetWorkspaces(this ServiceScope scope) => scope.Get<WorkspaceCollection>();
+
+        public static Manager GetManager(this ServiceScope scope) => scope.Get<Manager>();
 
         public static Command GetReplCommand(this ServiceScope scope) => scope.Get<Command>(ReplCommandId);
 
