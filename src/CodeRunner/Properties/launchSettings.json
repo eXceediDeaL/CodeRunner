@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CodeRunner": {
+      "commandName": "Project",
+      "commandLineArgs": "-d \"./temp\" --verbose"
+    }
+  }
+}
