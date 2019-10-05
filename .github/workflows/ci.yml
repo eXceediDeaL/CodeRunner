@@ -100,5 +100,5 @@ jobs:
       if: github.event_name == 'push'
       env:
         MYGET_TOKEN: ${{ secrets.MYGET_TOKEN }}
-      run: dotnet nuget push ./packages/CodeRunner.0.0.1-pre.nupkg -k $env:MYGET_TOKEN -s https://www.myget.org/F/stardustdl/api/v2/package
+      run: dotnet nuget push ./packages/CodeRunner.Test.Host.0.0.1-pre.nupkg -k $env:MYGET_TOKEN -s https://www.myget.org/F/stardustdl/api/v2/package
       shell: pwsh

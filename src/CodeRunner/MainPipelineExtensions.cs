@@ -9,6 +9,7 @@ using CodeRunner.Loggings;
 using CodeRunner.Managements;
 using CodeRunner.Managements.Extensions;
 using CodeRunner.Pipelines;
+using CodeRunner.Test;
 using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -53,6 +54,9 @@ namespace CodeRunner
 
                 res.Load(new ExtensionLoader(typeof(Extensions.Builtin.Console.ConsoleExtension).Assembly));
                 res.Load(new ExtensionLoader(typeof(Extensions.Builtin.Workspace.WorkspaceExtension).Assembly));
+
+                foreach(System.Reflection.Assembly v in ExtensionDI.ExtensionAssemblies)
+                    res.Load(new ExtensionLoader(v));
 
                 await res.LoadFromManager(manager, context.Logs);
 
