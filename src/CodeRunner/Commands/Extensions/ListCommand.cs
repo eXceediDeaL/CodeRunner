@@ -13,13 +13,15 @@ namespace CodeRunner.Commands.Extensions
 {
     public class ListCommand : BaseCommand<ListCommand.CArgument>
     {
+        public override string Name => "extension.list";
+
         public override Command Configure()
         {
             Command res = new Command("list", "List all.");
             return res;
         }
 
-        protected override Task<int> Handle(ListCommand.CArgument argument, IConsole console, InvocationContext context, PipelineContext pipeline, CancellationToken cancellationToken)
+        protected override Task<int> Handle(CArgument argument, IConsole console, InvocationContext context, PipelineContext pipeline, CancellationToken cancellationToken)
         {
             ITerminal terminal = console.GetTerminal();
             ExtensionCollection manager = pipeline.Services.GetExtensions();

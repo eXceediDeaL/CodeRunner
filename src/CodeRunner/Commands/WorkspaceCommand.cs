@@ -9,6 +9,8 @@ namespace CodeRunner.Commands
 {
     public class WorkspaceCommand : BaseCommand<WorkspaceCommand.CArgument>
     {
+        public override string Name => "workspace";
+
         public override Command Configure()
         {
             Command res = new Command("workspace", "Manage workspaces.");

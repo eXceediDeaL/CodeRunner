@@ -13,17 +13,19 @@ namespace CodeRunner.Commands.Workspaces
 {
     public class ListCommand : BaseCommand<ListCommand.CArgument>
     {
+        public override string Name => "workspace.list";
+
         public override Command Configure()
         {
             Command res = new Command("list", "List all.");
             return res;
         }
 
-        protected override Task<int> Handle(ListCommand.CArgument argument, IConsole console, InvocationContext context, PipelineContext pipeline, CancellationToken cancellationToken)
+        protected override Task<int> Handle(CArgument argument, IConsole console, InvocationContext context, PipelineContext pipeline, CancellationToken cancellationToken)
         {
             ITerminal terminal = console.GetTerminal();
             WorkspaceCollection manager = pipeline.Services.GetWorkspaces();
-            terminal.OutputTable(manager.GetProviders(),
+            terminal.OutputTable(manager,
                 new OutputTableColumnStringView<IWorkspaceProvider>(x => x.Name, nameof(IWorkspaceProvider.Name)),
                 new OutputTableColumnStringView<IWorkspaceProvider>(x => manager.GetExtension(x)?.Name ?? "N/A", "Extension")
             );

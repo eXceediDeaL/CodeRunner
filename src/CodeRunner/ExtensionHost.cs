@@ -9,5 +9,10 @@
         public void Shutdown() => RequestShutdown = true;
 
         public void Restart() => RequestRestart = true;
+
+        public void SendMessage(string message)
+        {
+
+        }
     }
 }

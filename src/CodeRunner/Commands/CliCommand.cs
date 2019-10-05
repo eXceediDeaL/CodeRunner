@@ -14,6 +14,8 @@ namespace CodeRunner.Commands
 {
     public class CliCommand : BaseCommand<CliCommand.CArgument>
     {
+        public override string Name => "cli";
+
         public override Command Configure()
         {
             RootCommand res = new RootCommand(Program.AppDescription);

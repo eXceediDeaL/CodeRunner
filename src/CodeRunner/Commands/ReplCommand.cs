@@ -9,6 +9,8 @@ namespace CodeRunner.Commands
 {
     public class ReplCommand : BaseCommand<ReplCommand.CArgument>
     {
+        public override string Name => "repl";
+
         public override Command Configure()
         {
             RootCommand res = new RootCommand(Program.AppDescription);

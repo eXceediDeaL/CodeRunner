@@ -9,6 +9,8 @@ namespace CodeRunner.Commands
 {
     public class ExtensionCommand : BaseCommand<ExtensionCommand.CArgument>
     {
+        public override string Name => "extension";
+
         public override Command Configure()
         {
             Command res = new Command("extension", "Manage extensions.");

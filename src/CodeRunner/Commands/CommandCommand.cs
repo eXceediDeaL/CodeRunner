@@ -9,6 +9,8 @@ namespace CodeRunner.Commands
 {
     public class CommandCommand : BaseCommand<CommandCommand.CArgument>
     {
+        public override string Name => "command";
+
         public override Command Configure()
         {
             Command res = new Command("command", "Manage commands.");

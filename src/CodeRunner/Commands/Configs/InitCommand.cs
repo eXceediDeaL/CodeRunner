@@ -11,6 +11,8 @@ namespace CodeRunner.Commands.Configs
 {
     public class InitCommand : BaseCommand<InitCommand.CArgument>
     {
+        public override string Name => "config.init";
+
         public override Command Configure()
         {
             Command res = new Command("init", "Initialize or uninitialize code-runner directory.");

@@ -9,6 +9,8 @@ namespace CodeRunner.Commands
 {
     public class ConfigCommand : BaseCommand<ConfigCommand.CArgument>
     {
+        public override string Name => "config";
+
         public override Command Configure()
         {
             Command res = new Command("config", "Manage CR.");

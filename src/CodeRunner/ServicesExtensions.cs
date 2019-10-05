@@ -1,7 +1,10 @@
-﻿using CodeRunner.Managements;
+﻿using CodeRunner.Extensions;
+using CodeRunner.Loggings;
+using CodeRunner.Managements;
 using CodeRunner.Managements.Extensions;
 using CodeRunner.Pipelines;
 using System.CommandLine;
+using System.IO;
 
 namespace CodeRunner
 {
@@ -15,16 +18,21 @@ namespace CodeRunner
 
         internal const string ArgCommandId = "arg-cmd";
 
-        public static ExtensionCollection GetExtensions(this ServiceScope scope) => scope.Get<ExtensionCollection>();
+        public static ExtensionCollection GetExtensions(this IServiceScope scope) => scope.GetService<ExtensionCollection>();
 
-        public static CommandCollection GetCommands(this ServiceScope scope) => scope.Get<CommandCollection>();
+        public static CommandCollection GetCommands(this IServiceScope scope) => scope.GetService<CommandCollection>();
 
-        public static WorkspaceCollection GetWorkspaces(this ServiceScope scope) => scope.Get<WorkspaceCollection>();
+        public static WorkspaceCollection GetWorkspaces(this IServiceScope scope) => scope.GetService<WorkspaceCollection>();
 
-        public static Manager GetManager(this ServiceScope scope) => scope.Get<Manager>();
+        public static Manager GetManager(this IServiceScope scope) => scope.GetService<Manager>();
 
-        public static Command GetReplCommand(this ServiceScope scope) => scope.Get<Command>(ReplCommandId);
+        public static Command GetReplCommand(this IServiceScope scope) => scope.GetService<Command>(ReplCommandId);
 
-        public static Command GetCliCommand(this ServiceScope scope) => scope.Get<Command>(CliCommandId);
+        public static Command GetCliCommand(this IServiceScope scope) => scope.GetService<Command>(CliCommandId);
+
+        public static IServiceScope CreateExtensionScope(this IServiceScope scope) => new ServiceSubscope(scope).NoAccess<Manager>()
+            .NoAccess<ExtensionCollection>().NoAccess<CommandCollection>().NoAccess<WorkspaceCollection>()
+            .NoAccess<Command>(ReplCommandId).NoAccess<Command>(CliCommandId)
+            .NoWrite<IHost>().NoWrite<TextReader>().NoWrite<IConsole>().NoWrite<ILogger>().NoWrite<IWorkspace>();
     }
 }

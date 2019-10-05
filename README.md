@@ -23,7 +23,7 @@ dotnet tool install -g CodeRunner --version 0.0.1-pre --add-source https://www.m
 
 ### Binary Files
 
-See the latest action CI-CD, and download the artifacts `built` for your OS.
+See the latest action CI-CD, and download the artifacts `published` for your OS.
 
 ## CLI Mode
 
@@ -114,7 +114,7 @@ When you meet some errors, for example, CR data loading failing, use `debug` com
 
 # Config
 
-The config files is at `.cr/`
+The config files is at `.crw/`
 
 ## templates/
 

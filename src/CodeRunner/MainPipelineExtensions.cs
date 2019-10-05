@@ -1,6 +1,7 @@
 ﻿using CodeRunner.Commands;
 using CodeRunner.Diagnostics;
 using CodeRunner.Extensions;
+using CodeRunner.Extensions.Commands;
 using CodeRunner.Extensions.Helpers;
 using CodeRunner.Extensions.Helpers.Rendering;
 using CodeRunner.Helpers;
@@ -91,9 +92,12 @@ namespace CodeRunner
             context =>
             {
                 Command command = new ReplCommand().Build();
-                foreach (Command cmd in context.Services.GetCommands())
+                CommandCollection collection = context.Services.GetCommands();
+                foreach (ICommandBuilder cmd in collection)
                 {
-                    command.AddCommand(cmd);
+                    Command built = cmd.Build();
+                    collection.Use(built, cmd);
+                    command.AddCommand(built);
                 }
                 context.Services.Add<Command>(command, ServicesExtensions.ReplCommandId);
                 return Task.FromResult(context.IgnoreResult());
@@ -124,16 +128,18 @@ namespace CodeRunner
             async context =>
             {
                 WorkspaceCollection workspaces = context.Services.GetWorkspaces();
-                string workspaceName = context.Services.Get<string>(ServicesExtensions.ArgWorkspaceNameId);
-                Extensions.Managements.IWorkspaceProvider? defaultWs = workspaces.GetWorkspaceProviderByName(workspaceName);
+                string workspaceName = context.Services.GetService<string>(ServicesExtensions.ArgWorkspaceNameId);
+                Extensions.Managements.IWorkspaceProvider? defaultWs = workspaces.GetProvider(workspaceName);
                 Assert.IsNotNull(defaultWs);
 
                 ITerminal terminal = context.Services.GetConsole().GetTerminal();
-                Templates.BaseTemplate<IWorkspace> provider = defaultWs.Provider;
+                Templates.ITemplate<IWorkspace> provider = defaultWs.GetProvider();
                 Templates.ResolveContext resolveContext = new Templates.ResolveContext();
                 if (terminal.FillVariables(context.Services.GetInput(), provider.GetVariables(), resolveContext))
                 {
-                    context.Services.Add<IWorkspace>(await provider.Resolve(resolveContext));
+                    IWorkspace built = await provider.Resolve(resolveContext);
+                    workspaces.Use(built, defaultWs);
+                    context.Services.Add<IWorkspace>(built);
                     return context.IgnoreResult();
                 }
                 else
@@ -176,13 +182,19 @@ namespace CodeRunner
                         }
                         else
                         {
-                            if (currentCommand is Command command && commands.Contains(command))
+                            if (currentCommand is Command command && commands.Contains(command)) // extension command
                             {
                                 IExtension ext = commands.GetExtension(command);
-                                string? targetCommandName = commands.GetBuilder(command).GetType().FullName;
+                                string? targetCommandName = commands.GetProvider(command).GetType().FullName;
 
                                 context.Logs.Debug($"Command {targetCommandName} from extension {ext.Publisher}.{ext.Name} invoking.");
-                                exitCode = await replParser.InvokeAsync(result, terminal);
+
+                                {
+                                    PipelineContext subContext = new PipelineContext(context.Services.CreateExtensionScope(), context.Logs.CreateScope(targetCommandName ?? "sub", context.Logs.Level));
+                                    Parser subParser = CommandLines.CreateDefaultParser(replCommand, subContext);
+                                    exitCode = await subParser.InvokeAsync(result, terminal);
+                                }
+
                                 context.Logs.Debug($"Command {targetCommandName} invoked with {exitCode}.");
                             }
                             else
@@ -209,7 +221,7 @@ namespace CodeRunner
                 }
 
                 {
-                    string cmd = context.Services.Get<string>(ServicesExtensions.ArgCommandId);
+                    string cmd = context.Services.GetService<string>(ServicesExtensions.ArgCommandId);
                     if (!string.IsNullOrEmpty(cmd))
                     {
                         return (await doALine(cmd)).Item2;
